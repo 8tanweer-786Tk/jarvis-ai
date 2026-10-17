@@ -1,0 +1,80 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JARVIS AI</title>
+<style>
+body {
+  background: #050b18;
+  color: #42d9ff;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 25px 10px;
+}
+h1 { letter-spacing: 5px; }
+.circle {
+  margin: 35px auto;
+  width: 130px;
+  height: 130px;
+  border: 3px solid #42d9ff;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 60px;
+  box-shadow: 0 0 25px #087bba;
+}
+input {
+  width: 65%;
+  padding: 12px;
+  border-radius: 8px;
+}
+button {
+  padding: 12px;
+  margin: 5px;
+  background: #42d9ff;
+  border: 0;
+  border-radius: 8px;
+}
+#reply { color: white; }
+</style>
+</head>
+<body>
+<h1>J.A.R.V.I.S</h1>
+<p>YOUR PERSONAL AI ASSISTANT</p>
+<div class="circle">🤖</div>
+<p id="reply">Hello! I am JARVIS. Talk to me!</p>
+<input id="msg" placeholder="Type your message">
+<button onclick="talk()">SEND</button>
+<button onclick="listen()">🎙️ SPEAK</button>
+<script>
+function talk() {
+  let q = document.getElementById("msg").value;
+  let a = "I am your JARVIS assistant. My AI brain will be connected in the next step.";
+  if (!q.trim()) return;
+  if (/hello|hi|salam/i.test(q)) a = "Hello! I am JARVIS. How can I help you?";
+  if (/your name|naam/i.test(q)) a = "My name is JARVIS, your personal assistant.";
+  if (/time|samay/i.test(q)) a = "The time is " + new Date().toLocaleTimeString();
+  document.getElementById("reply").textContent = a;
+  if ("speechSynthesis" in window) {
+    speechSynthesis.cancel();
+    speechSynthesis.speak(new SpeechSynthesisUtterance(a));
+  }
+}
+function listen() {
+  const R = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!R) {
+    document.getElementById("reply").textContent = "Voice input is not supported in this browser. Try typing.";
+    return;
+  }
+  let r = new R();
+  r.lang = "en-IN";
+  r.onresult = e => {
+    document.getElementById("msg").value = e.results[0][0].transcript;
+    talk();
+  };
+  r.start();
+}
+</script>
+</body>
+</html>
