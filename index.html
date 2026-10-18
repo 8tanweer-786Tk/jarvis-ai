@@ -1,80 +1,127 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>JARVIS AI</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S AI</title>
 <style>
-body {
-  background: #050b18;
-  color: #42d9ff;
-  font-family: Arial, sans-serif;
-  text-align: center;
-  padding: 25px 10px;
-}
-h1 { letter-spacing: 5px; }
-.circle {
-  margin: 35px auto;
-  width: 130px;
-  height: 130px;
-  border: 3px solid #42d9ff;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 60px;
-  box-shadow: 0 0 25px #087bba;
-}
-input {
-  width: 65%;
-  padding: 12px;
-  border-radius: 8px;
-}
-button {
-  padding: 12px;
-  margin: 5px;
-  background: #42d9ff;
-  border: 0;
-  border-radius: 8px;
-}
-#reply { color: white; }
+*{box-sizing:border-box}
+body{margin:0;background:#050b18;color:#42d9ff;font-family:Arial,sans-serif;text-align:center;padding:24px 14px}
+h1{letter-spacing:5px;margin:18px 0 8px}
+p{color:#a6dff5}
+.circle{width:125px;height:125px;border:3px solid #42d9ff;border-radius:50%;display:grid;place-items:center;margin:28px auto;font-size:54px;box-shadow:0 0 28px #008cff;animation:pulse 2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 45px #00bfff}}
+.panel{max-width:560px;margin:auto}
+#reply{background:#0a1729;border:1px solid #155b80;border-radius:12px;padding:16px;min-height:90px;text-align:left;white-space:pre-wrap;line-height:1.5;color:#e2f8ff}
+input{width:100%;padding:14px;margin:14px 0 8px;background:#0a1729;color:white;border:1px solid #1684b4;border-radius:9px;font-size:16px}
+button{padding:12px 18px;margin:5px;background:#087eaa;color:white;border:0;border-radius:8px;font-size:15px;cursor:pointer}
+button:disabled{opacity:.5}
+#status{font-size:13px;min-height:20px}
+footer{font-size:12px;color:#7398ad;margin-top:24px}
 </style>
 </head>
 <body>
 <h1>J.A.R.V.I.S</h1>
 <p>YOUR PERSONAL AI ASSISTANT</p>
 <div class="circle">🤖</div>
-<p id="reply">Hello! I am JARVIS. Talk to me!</p>
-<input id="msg" placeholder="Type your message">
-<button onclick="talk()">SEND</button>
-<button onclick="listen()">🎙️ SPEAK</button>
+
+<div class="panel">
+  <div id="reply" aria-live="polite">Hello! I am JARVIS. Ask me anything.</div>
+  <input id="msg" placeholder="Type your message..." autocomplete="off">
+  <button id="send" onclick="talk()">SEND</button>
+  <button onclick="listen()">🎙️ SPEAK</button>
+  <button onclick="stopVoice()">🔇 STOP VOICE</button>
+  <p id="status">AI assistant ready</p>
+</div>
+<footer>LUCKYSTAR JARVIS AI</footer>
+
 <script>
-function talk() {
-  let q = document.getElementById("msg").value;
-  let a = "I am your JARVIS assistant. My AI brain will be connected in the next step.";
-  if (!q.trim()) return;
-  if (/hello|hi|salam/i.test(q)) a = "Hello! I am JARVIS. How can I help you?";
-  if (/your name|naam/i.test(q)) a = "My name is JARVIS, your personal assistant.";
-  if (/time|samay/i.test(q)) a = "The time is " + new Date().toLocaleTimeString();
-  document.getElementById("reply").textContent = a;
-  if ("speechSynthesis" in window) {
-    speechSynthesis.cancel();
-    speechSynthesis.speak(new SpeechSynthesisUtterance(a));
-  }
-}
-function listen() {
-  const R = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!R) {
-    document.getElementById("reply").textContent = "Voice input is not supported in this browser. Try typing.";
+const API_URL = "https://luckystar-jarvis-api.8tanweer.workers.dev";
+
+async function talk() {
+  const input = document.getElementById("msg");
+  const reply = document.getElementById("reply");
+  const status = document.getElementById("status");
+  const send = document.getElementById("send");
+  const message = input.value.trim();
+
+  if (!message) {
+    status.textContent = "Please type a message first.";
     return;
   }
-  let r = new R();
-  r.lang = "en-IN";
-  r.onresult = e => {
-    document.getElementById("msg").value = e.results[0][0].transcript;
+
+  reply.textContent = "JARVIS is thinking...";
+  status.textContent = "Connecting to AI...";
+  send.disabled = true;
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({message})
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.reply) {
+      throw new Error(data.error || "AI request failed.");
+    }
+
+    reply.textContent = data.reply;
+    status.textContent = "JARVIS replied successfully.";
+    speak(data.reply);
+  } catch (error) {
+    reply.textContent = "I could not connect to the AI. Please try again.";
+    status.textContent = "Connection error. Check your Worker setup.";
+  } finally {
+    send.disabled = false;
+  }
+}
+
+function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const voice = new SpeechSynthesisUtterance(text);
+  voice.lang = "en-IN";
+  speechSynthesis.speak(voice);
+}
+
+function stopVoice() {
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  if (window.activeRecognition) window.activeRecognition.stop();
+}
+
+function listen() {
+  const Recognition = window.SpeechRecognition ||
+                      window.webkitSpeechRecognition;
+
+  if (!Recognition) {
+    document.getElementById("status").textContent =
+      "Voice input is not supported in this browser. Try Chrome.";
+    return;
+  }
+
+  const recognition = new Recognition();
+  recognition.lang = "en-IN";
+  recognition.onstart = () => {
+    document.getElementById("status").textContent = "Listening...";
+  };
+  recognition.onresult = event => {
+    document.getElementById("msg").value =
+      event.results[0][0].transcript;
     talk();
   };
-  r.start();
+  recognition.onerror = () => {
+    document.getElementById("status").textContent =
+      "Could not hear you. Please try again.";
+  };
+  window.activeRecognition = recognition;
+  recognition.start();
 }
+
+document.getElementById("msg").addEventListener("keydown", event => {
+  if (event.key === "Enter") talk();
+});
 </script>
 </body>
 </html>
